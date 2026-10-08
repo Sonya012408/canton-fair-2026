@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Китай 2026 — план по часам</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root{
+    --bg:#f6f4ef; --card:#fff; --ink:#1f1e1b; --muted:#6a655c; --line:#e5dfd3;
+    --red:#b3272d; --gold:#b8892f; --blue:#2f5fa8; --green:#2f7d5c; --amber:#c26a12; --grey:#5c6470;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  a{color:var(--blue)}
+  header.hero{padding:52px 22px 40px;text-align:center;color:#fff;background:linear-gradient(150deg,#6d0f13,#b3272d 55%,#c9a44c)}
+  header.hero h1{margin:0 0 6px;font-size:2.2rem}
+  header.hero p{margin:0;opacity:.92}
+  .stats{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px}
+  .stat{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:12px;padding:9px 16px;min-width:120px}
+  .stat b{display:block;font-size:1.1rem}.stat span{font-size:.76rem;opacity:.85}
+  nav.days{position:sticky;top:0;z-index:999;background:#fffdf9;border-bottom:1px solid var(--line);display:flex;gap:6px;overflow-x:auto;padding:8px 12px}
+  nav.days a{white-space:nowrap;text-decoration:none;font-size:.82rem;padding:6px 11px;border-radius:999px;border:1px solid var(--line);color:var(--ink);background:#fff}
+  nav.days a:hover{border-color:var(--red);color:var(--red)}
+  main{max-width:1080px;margin:0 auto;padding:0 18px 40px}
+  section{padding:34px 0 8px}
+  h2{font-size:1.45rem;margin:0 0 6px}
+  .lead{color:var(--muted);margin:0 0 18px;max-width:75ch}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .urgent{border-left:5px solid var(--red);background:#fdf1ef}
+  .urgent ol{margin:6px 0 0;padding-left:20px}.urgent li{margin:6px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+  #map{height:520px;border-radius:14px;border:1px solid var(--line)}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--muted);margin-top:8px}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px;vertical-align:-1px}
+  .day{background:#fff;border:1px solid var(--line);border-radius:16px;margin:22px 0;overflow:hidden}
+  .day-head{padding:14px 18px;color:#fff;display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px}
+  .day-head h3{margin:0;font-size:1.2rem}.day-head span{font-size:.88rem;opacity:.9}
+  .t-travel{background:var(--blue)}.t-fair{background:var(--red)}.t-free{background:var(--green)}.t-fact{background:var(--amber)}.t-out{background:var(--grey)}
+  .day-sum{padding:12px 18px;border-bottom:1px solid var(--line);background:#fbf9f5;font-size:.93rem}
+  .tl{padding:6px 18px 14px}
+  .row{display:grid;grid-template-columns:62px 34px 1fr;gap:6px;padding:9px 0;border-bottom:1px dashed var(--line)}
+  .row:last-child{border-bottom:none}
+  .tm{font-weight:700;font-variant-numeric:tabular-nums}
+  .ic{font-size:1.15rem;text-align:center}
+  .row b{display:block}.row small{color:var(--muted);display:block;margin-top:2px}
+  .cost{display:inline-block;font-size:.75rem;background:#f1ece2;border-radius:6px;padding:1px 7px;margin-top:4px;color:#4b463d}
+  .tip{margin:0 18px 16px;padding:10px 14px;border-radius:10px;background:#eef4fb;border-left:4px solid var(--blue);font-size:.88rem}
+  .warn{margin:0 18px 16px;padding:10px 14px;border-radius:10px;background:#fdf1ef;border-left:4px solid var(--red);font-size:.88rem}
+  .alt{margin:0 18px 16px;padding:12px 14px;border-radius:10px;background:#f2f8f4;border:1px solid #cfe5d8;font-size:.9rem}
+  .alt h4{margin:0 0 6px}
+  table{width:100%;border-collapse:collapse;font-size:.88rem}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f3ede1}
+  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+  ul.check{list-style:none;padding:0;margin:0}ul.check li{padding:7px 0;border-bottom:1px solid var(--line)}
+  ul.check li:before{content:"☐ ";color:var(--red)}
+  footer{text-align:center;color:var(--muted);font-size:.82rem;padding:24px}
+  .tag{display:inline-block;font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:999px;background:#fff3d6;color:#7a5410;margin-left:6px;vertical-align:1px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <h1>Китай 2026 — живём поездку по часам</h1>
+  <p>23 октября – 3 ноября · Гуанчжоу, Фошань, Гонконг (+ Шэньчжэнь как вариант) · Никита, Валерия, Анна, Соня</p>
+  <div class="stats">
+    <div class="stat"><b>8 ночей</b><span>Гуанчжоу, 24.10–1.11</span></div>
+    <div class="stat"><b>3 дня</b><span>Кантонская ярмарка</span></div>
+    <div class="stat"><b>2 дня</b><span>фабрики Фошаня</span></div>
+    <div class="stat"><b>27.10</b><span>Гонконг</span></div>
+    <div class="stat"><b>30.10</b><span>свободный день</span></div>
+  </div>
+</header>
+
+<nav class="days">
+  <a href="#now">⚠ Сделать сейчас</a>
+  <a href="#map-s">🗺 Карта</a>
+  <a href="#basics">💳 Деньги и связь</a>
+  <a href="#d23">23 пт</a><a href="#d24">24 сб</a><a href="#d25">25 вс</a><a href="#d26">26 пн</a>
+  <a href="#d27">27 вт · ГК</a><a href="#d28">28 ср</a><a href="#d29">29 чт</a><a href="#d30">30 пт</a>
+  <a href="#d31">31 сб</a><a href="#d01">1 вс</a><a href="#d02">2–3 ноя</a>
+  <a href="#budget">💰 Бюджет</a><a href="#sources">Источники</a>
+</nav>
+
+<main>
+
+<section id="now">
+  <h2>⚠ Сделать на этой неделе</h2>
+  <div class="card urgent">
+    <ol>
+      <li><b>Забронировать отель Paco Hotel Zoo Metro — оба номера сразу.</b> Проверено 9 октября на Booking на даты 24.10–1.11: номер с двуспальной кроватью 68 228 ₽, номер с <b>2 раздельными кроватями 76 756 ₽</b>, итого <b>144 984 ₽ за 8 ночей</b>. Завтрак, ранний заезд и поздний выезд включены, оплата на месте, бесплатная отмена до 17 октября. У Mei Gang номер с раздельными кроватями на эти даты <b>уже закончился</b>: номера разбирают под ярмарку.</li>
+      <li><b>Купить авиабилеты:</b> Москва ⇄ Гуанчжоу на четверых (CZ656 23.10 21:15 / CZ8003 1.11 13:30) и Екатеринбург ⇄ Москва для Никиты, Валерии и Анны. Обратно в Екатеринбург — <b>2 ноября</b>, раз ночуете в Москве.</li>
+      <li><b>Предрегистрация всех четверых</b> на buyer.cantonfair.org.cn: бейдж у каждого свой и действует на Phase 2 и Phase 3.</li>
+      <li><b>Переводчик:</b> на 25, 26 и 31 октября — переводческий сервис ярмарки (500 ¥/день), на 28–29 — отдельный переводчик с машиной. Стороннего переводчика на ярмарку байер регистрирует на сайте не позже чем за 2 дня, отдельно на каждую фазу.</li>
+      <li><b>Поезд в Гонконг на 27.10</b> туда и обратно — в приложении 12306 или Trip.com, нужен загранпаспорт.</li>
+      <li><b>Деньги и связь</b> — см. блок ниже: наличные юани, Alipay, роуминг или eSIM.</li>
+      <li><b>Соня:</b> если новый паспорт будет на руках до 19–20 октября — меняем номер в билете. Если нет — летим на старом, с распечатками подтверждений.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="map-s">
+  <h2>🗺 Карта поездки</h2>
+  <p class="lead">Все точки маршрута по дням. Координаты приблизительные — для навигации на месте используйте Amap (高德地图).</p>
+  <div id="map"></div>
+  <div class="legend">
+    <span><i class="dot" style="background:#b3272d"></i>Ярмарка</span>
+    <span><i class="dot" style="background:#2f5fa8"></i>Отель / транспорт</span>
+    <span><i class="dot" style="background:#7a3fb0"></i>Гонконг</span>
+    <span><i class="dot" style="background:#c26a12"></i>Фабрики Фошаня</span>
+    <span><i class="dot" style="background:#2f7d5c"></i>Свободный день (30.10)</span>
+    <span><i class="dot" style="background:#5c6470"></i>Шэньчжэнь (вариант Б)</span>
+  </div>
+</section>
+
+<section id="basics">
+  <h2>💳 Как мы платим, на чём ездим, как на связи</h2>
+  <div class="grid3">
+    <div class="card">
+      <h3 style="margin-top:0">Деньги</h3>
+      <p><b>Российские карты в Китае не работают</b> — ни Visa/MC, ни «Мир», и почти все UnionPay.</p>
+      <ul>
+        <li><b>Наличные юани</b> — минимум 1 000–2 000 ¥ на человека мелкими купюрами. Такси, метро (автоматы), рынки.</li>
+        <li><b>Alipay</b> — зарегистрировать и пройти верификацию дома, пополнить через проверенный сервис. Нужен для Didi и QR-оплаты.</li>
+        <li><b>Гонконг:</b> своя валюта, HKD. Наличные HKD (~800–1 000 HK$ на человека) или Alipay, где его принимают.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">Связь</h3>
+      <ul>
+        <li>Российский <b>роуминг</b> или <b>eSIM</b> (Airalo и подобные) работает в обход блокировок: Telegram, WhatsApp, Google открываются.</li>
+        <li>Через китайский Wi-Fi Telegram и Google <b>не работают</b>.</li>
+        <li>В Гонконге блокировок нет.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0">Приложения</h3>
+      <ul>
+        <li><b>Amap (高德)</b> — карты и маршруты метро</li>
+        <li><b>Alipay + WeChat</b> — оплата, Didi внутри Alipay</li>
+        <li><b>12306 / Trip.com</b> — поезда</li>
+        <li><b>NIA 12367</b> — онлайн-карта прибытия в Китай</li>
+        <li><b>Переводчик с камерой</b> (Яндекс/Google, офлайн-пакет)</li>
+        <li><b>MTR Mobile</b> — метро Гонконга</li>
+      </ul>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <b>Часовые пояса:</b> Китай UTC+8 — на 3 часа впереди Екатеринбурга и на 5 часов впереди Москвы. <b>Погода в конце октября:</b> обычно +22…+28, влажно, бывают ливни — нужен лёгкий зонт.
+  </div>
+</section>
+
+<!-- ============ 23 ============ -->
+<div class="day" id="d23">
+  <div class="day-head t-travel"><h3>23 октября, пятница — собираемся в Москве и улетаем</h3><span>Анапа + Екатеринбург → Москва → Гуанчжоу</span></div>
+  <div class="day-sum">Соня приезжает поездом, трое прилетают из Екатеринбурга. Вечером вчетвером вылетаем из Шереметьево.</div>
+  <div class="tl">
+    <div class="row"><div class="tm">22.10 14:30</div><div class="ic">🚆</div><div><b>Соня — поезд Анапа → Москва Казанская</b><small>Прибытие 23.10 в 14:40.</small></div></div>
+    <div class="row"><div class="tm">14:40</div><div class="ic">🚇</div><div><b>Соня: Казанский вокзал → Шереметьево</b><small>Метро «Комсомольская» → кольцевая → «Белорусская» → Аэроэкспресс до SVO (~35 мин). В аэропорту примерно в 16:30.</small></div></div>
+    <div class="row"><div class="tm">16:00</div><div class="ic">✈️</div><div><b>Никита, Валерия, Анна: Екатеринбург → Москва (Домодедово)</b><small>По прежнему варианту билета: 16:00 → 16:30 по Москве. Сверьте с купленным билетом.</small></div></div>
+    <div class="row"><div class="tm">17:00</div><div class="ic">🚆</div><div><b>Домодедово → Шереметьево</b><small>Аэроэкспресс до Павелецкого → кольцевая → «Белорусская» → Аэроэкспресс до SVO, около 2 часов. На такси в пятницу вечером 1,5–2,5 часа пробок — непредсказуемо.</small></div></div>
+    <div class="row"><div class="tm">19:00</div><div class="ic">🧳</div><div><b>Встречаемся в Шереметьево, регистрация на CZ656</b><small>Терминал указан в билете. Международная регистрация закрывается примерно за час до вылета.</small></div></div>
+    <div class="row"><div class="tm">21:15</div><div class="ic">✈️</div><div><b>Вылет Москва → Гуанчжоу, China Southern CZ656</b><small>9 ч 25 мин. До вылета заполнить онлайн-карту прибытия в Китай (приложение NIA 12367) и сохранить QR-код.</small></div></div>
+  </div>
+  <div class="tip">В ручной клади: загранпаспорт, распечатки брони отеля, обратного билета и регистрации на ярмарку. Соне — ещё ответ авиакомпании и страница консульства КНР про срок паспорта.</div>
+</div>
+
+<!-- ============ 24 ============ -->
+<div class="day" id="d24">
+  <div class="day-head t-travel"><h3>24 октября, суббота — прилёт, заселение, бейджи</h3><span>Гуанчжоу</span></div>
+  <div class="day-sum">Прилетаем к обеду, заселяемся сразу (ранний заезд включён), получаем бейджи, вечером ужинаем у отеля и рано ложимся.</div>
+  <div class="tl">
+    <div class="row"><div class="tm">11:40</div><div class="ic">🛬</div><div><b>Прилёт в Байюнь, терминал 2</b><small>Паспортный контроль: отпечатки пальцев, фото, QR карты прибытия. Около 40–60 минут вместе с багажом.</small></div></div>
+    <div class="row"><div class="tm">12:45</div><div class="ic">🪪</div><div><b>Ищем стойку Canton Fair в зоне прилёта</b><small>У 140-й сессии заявлены выдачи бейджей в аэропорту, но адреса и часы ещё не опубликованы. Есть стойка — получаем бейджи здесь. Нет — едем в Пачжоу после заселения.</small></div></div>
+    <div class="row"><div class="tm">13:00</div><div class="ic">🚕</div><div><b>Такси/Didi до отеля Paco (Хуаньши-Дун-лу, 486)</b><small>4 человека с чемоданами — две машины или Didi XL. ~45 минут. Метро тоже возможно (линия 3 → 1 → 5), но около 70 минут и с пересадками.</small><span class="cost">~130–170 ¥ за машину</span></div></div>
+    <div class="row"><div class="tm">14:00</div><div class="ic">🏨</div><div><b>Заселение, душ, час отдыха</b><small>Номер 1 — Никита и Валерия, номер 2 (раздельные кровати) — Анна и Соня.</small></div></div>
+    <div class="row"><div class="tm">15:30</div><div class="ic">🚇</div><div><b>Метро до ярмарки — если бейджи не получили в аэропорту</b><small>«Зоопарк» (линия 5) → «Юаньцунь», переход на линию 11 (~3 мин) → 1 станция до «Пачжоу». ~35 минут. Офис регистрации иностранных байеров — у выходов A/B станции «Пачжоу». Взять: загранпаспорт, квитанцию предрегистрации, визитку.</small><span class="cost">~5 ¥</span></div></div>
+    <div class="row"><div class="tm">16:30</div><div class="ic">🚶</div><div><b>Разведка: 1–1,5 часа по павильонам</b><small>Phase 2 идёт с 23-го — смотрим, где мебельные залы, где выходы и фуд-корты. Завтра не тратим на это время.</small></div></div>
+    <div class="row"><div class="tm">18:30</div><div class="ic">🍽</div><div><b>Ужин у отеля: 大鸽饭 (Da Ge Fan)</b><small>Хуаньши-Дун-лу, 501, рядом с выходом C метро «Зоопарк». Фирменное блюдо — жареный голубь (乳鸽). Рядом улица ресторанов Дунду — корейская, японская и кантонская кухня.</small><span class="cost">~80–120 ¥/чел</span></div></div>
+    <div class="row"><div class="tm">20:30</div><div class="ic">😴</div><div><b>Спать</b><small>В 20:30 по Китаю в Москве 15:30 — организм будет сопротивляться. Но завтра первый рабочий день на ярмарке.</small></div></div>
+  </div>
+</div>
+
+<!-- ============ 25 ============ -->
+<div class="day" id="d25">
+  <div class="day-head t-fair"><h3>25 октября, воскресенье — ярмарка, Phase 2, день 1</h3><span>Мебель · Пачжоу</span></div>
+  <div class="day-sum">Первый день — широкий охват: обходим всех мебельных экспонентов, собираем каталоги и контакты WeChat, вечером составляем шорт-лист.</div>
+  <div class="tl">
+    <div class="row"><div class="tm">07:30</div><div class="ic">☕</div><div><b>Завтрак в отеле (шведский стол)</b></div></div>
+    <div class="row"><div class="tm">08:30</div><div class="ic">🚌</div><div><b>Шаттл отеля до ярмарки или метро</b><small>Расписание шаттла уточнить на ресепшене при заселении. Метро: «Зоопарк» → «Юаньцунь» (линия 5) → «Пачжоу» (линия 11), ~35 мин.</small></div></div>
+    <div class="row"><div class="tm">09:15</div><div class="ic">🤝</div><div><b>Встреча с переводчиком у входа</b><small>Если переводчик сторонний, его бейдж-сопровождающего мы оформили на сайте за 2 дня.</small></div></div>
+    <div class="row"><div class="tm">09:30</div><div class="ic">🏢</div><div><b>Открытие павильонов — мебель</b><small>Работаем в два потока. Никита и переводчик — переговоры. Анна — дизайн и материалы, фото стендов вместе с визитками. Валерия и Соня — каталоги, контакты, таблица поставщиков.</small></div></div>
+    <div class="row"><div class="tm">12:30</div><div class="ic">🍜</div><div><b>Обед в фуд-корте ярмарки</b><small>Ориентир по цене: ~50–80 ¥. В пик очереди, поэтому лучше в 12:00 или после 13:30.</small></div></div>
+    <div class="row"><div class="tm">13:30</div><div class="ic">🏢</div><div><b>Вторая половина дня — до закрытия</b><small>Ярмарка работает до 18:00. Каждому интересному поставщику задаём вопрос: «Можно приехать на вашу фабрику 28 или 29 октября?»</small></div></div>
+    <div class="row"><div class="tm">18:00</div><div class="ic">🚇</div><div><b>Обратно</b><small>На «Пачжоу» в 18:00 толпа. Можно ехать с соседней «Синьгандун» (линия 8) или на шаттле отеля.</small></div></div>
+    <div class="row"><div class="tm">19:30</div><div class="ic">🍽</div><div><b>Ужин на улице Дунду у отеля</b><small>Быстро и рядом — силы ещё понадобятся.</small><span class="cost">~80–150 ¥/чел</span></div></div>
+    <div class="row"><div class="tm">21:00</div><div class="ic">📋</div><div><b>Разбор дня за 30 минут</b><small>Сводим контакты в одну таблицу, отмечаем топ-10 поставщиков, договариваемся, к кому идём завтра.</small></div></div>
+  </div>
+</div>
+
+<!-- ============ 26 ============ -->
+<div class="day" id="d26">
+  <div class="day-head t-fair"><h3>26 октября, понедельник — ярмарка, Phase 2, день 2</h3><span>Мебель · вечер у Кантонской башни</span></div>
+  <div class="day-sum">Прицельно: возвращаемся к шорт-листу, выясняем цены, минимальный заказ и образцы, фиксируем визиты на фабрики на 28–29.</div>
+  <div class="tl">
+    <div class="row"><div class="tm">07:30</div><div class="ic">☕</div><div><b>Завтрак</b></div></div>
+    <div class="row"><div class="tm">08:30</div><div class="ic">🚌</div><div><b>Шаттл / метро до Пачжоу</b></div></div>
+    <div class="row"><div class="tm">09:30</div><div class="ic">💬</div><div><b>Переговоры с шорт-листом</b><small>Цена, MOQ, сроки, образцы, условия доставки. <b>Главное за день:</b> точные адреса фабрик и время визита на 28 и 29 октября — пусть пришлют геометку в WeChat.</small></div></div>
+    <div class="row"><div class="tm">12:30</div><div class="ic">🍜</div><div><b>Обед на ярмарке</b></div></div>
+    <div class="row"><div class="tm">14:00</div><div class="ic">🏢</div><div><b>Добор: залы, куда не успели</b></div></div>
+    <div class="row"><div class="tm">17:30</div><div class="ic">🚕</div><div><b>Такси к Кантонской башне</b><small>Около 4 км вдоль реки, ~15 минут.</small><span class="cost">~20–30 ¥</span></div></div>
+    <div class="row"><div class="tm">18:00</div><div class="ic">🌆</div><div><b>Кантонская башня и площадь Хуачэн</b><small>Закат, подсветка, вид на небоскрёбы Чжуцзян Синьчэн. Гулять бесплатно.</small></div></div>
+    <div class="row"><div class="tm">19:30</div><div class="ic">🍽</div><div><b>Ужин в Чжуцзян Синьчэн</b><small>Деловой район, много кантонских ресторанов и ТЦ рядом с площадью.</small></div></div>
+    <div class="row"><div class="tm">21:00</div><div class="ic">🚇</div><div><b>Метро в отель, ранний отбой</b><small>Завтра ранний выезд в Гонконг.</small></div></div>
+  </div>
+  <div class="tip">27-го ярмарка ещё работает (последний день Phase 2), но мы уезжаем в Гонконг. Всё важное закрываем сегодня.</div>
+</div>
+
+<!-- ============ 27 ============ -->
+<div class="day" id="d27">
+  <div class="day-head t-free" style="background:#7a3fb0"><h3>27 октября, вторник — Гонконг на один день</h3><span>Свободный день №1</span></div>
+  <div class="day-sum">Утренний скоростной поезд → гавань → пик Виктория → старый Сентрал и дизайн-квартал PMQ → рынки Монгкока → ночной рынок Темпл-стрит → поезд обратно.</div>
+  <div class="warn"><b>Граница:</b> поездка в Гонконг — это выезд из материкового Китая и новый въезд обратно. Безвиз для россиян многократный, новый въезд даёт новые 30 дней. Но для <b>Сони со старым паспортом</b> это ещё одна проверка срока паспорта на въезде в Китай. По официальному правилу консульств КНР паспорт до 16.12 проходит. Если хочется нулевого риска, Соне есть альтернатива без границы — день в Шэньчжэне или Гуанчжоу (ниже). В сам Гонконг россиянам виза не нужна на 14 дней. Требования к сроку паспорта для Гонконга в источниках разные (1 месяц или 45 дней после въезда) — паспорт до 16.12 проходит по обоим.</div>
+  <div class="tl">
+    <div class="row"><div class="tm">06:30</div><div class="ic">🥐</div><div><b>Подъём, быстрый перекус</b><small>Отельный завтрак может ещё не начаться — попросить с вечера ланч-бокс или купить в 7-Eleven.</small></div></div>
+    <div class="row"><div class="tm">06:45</div><div class="ic">🚕</div><div><b>Такси до вокзала Гуанчжоу-Восточный (广州东站)</b><small>~15 минут. Метро: «Зоопарк» → «Янцзи», переход на линию 1 → «Гуанчжоу-Восточный», ~25 мин.</small><span class="cost">~20–30 ¥</span></div></div>
+    <div class="row"><div class="tm">07:25</div><div class="ic">🚄</div><div><b>Поезд Гуанчжоу-Восточный → Гонконг Вест-Коулун</b><small>Например, G6551 07:25 → 09:07 (по расписанию 2026 года). Конкретный поезд выбрать в 12306 или Trip.com. Второй класс ~185–240 ¥.</small><span class="cost">~185–240 ¥</span></div></div>
+    <div class="row"><div class="tm">09:10</div><div class="ic">🛂</div><div><b>Граница прямо на вокзале Вест-Коулун</b><small>Выезд из Китая и въезд в Гонконг в одном здании, 20–30 минут.</small></div></div>
+    <div class="row"><div class="tm">09:40</div><div class="ic">💳</div><div><b>Октопус-карта</b><small>Обменять юани на HKD на вокзале и купить Octopus в кассе MTR станции Austin. Карта работает в метро, на пароме, в 7-Eleven.</small></div></div>
+    <div class="row"><div class="tm">10:00</div><div class="ic">🌊</div><div><b>Набережная Цим Ша Цуй, Часовая башня</b><small>Лучший вид на небоскрёбы Гонконг-Айленда. От Вест-Коулуна MTR одна станция до East Tsim Sha Tsui или 15 минут пешком.</small></div></div>
+    <div class="row"><div class="tm">10:30</div><div class="ic">⛴</div><div><b>Паром Star Ferry → Сентрал</b><small>С 1888 года, 10 минут через бухту. Садимся на верхнюю палубу.</small><span class="cost">5 HK$ (будни)</span></div></div>
+    <div class="row"><div class="tm">10:55</div><div class="ic">🚡</div><div><b>Трамвай на пик Виктория (Peak Tram)</b><small>Нижняя станция на Гарден-роуд, 10–15 минут пешком от пирса. Билет купить онлайн заранее — бывают очереди.</small><span class="cost">116 HK$ туда-обратно</span></div></div>
+    <div class="row"><div class="tm">11:30</div><div class="ic">🚶</div><div><b>Тропа Лугард-роуд вокруг пика</b><small>~3,5 км по ровной дорожке, около часа. Самая красивая панорама Гонконга и тихо.</small></div></div>
+    <div class="row"><div class="tm">13:15</div><div class="ic">🍜</div><div><b>Обед в Сентрале: суп с вонтонами</b><small>沾仔記 Tsim Chai Kee или 麥奀雲吞麵 Mak's Noodle, обе на Веллингтон-стрит. Дёшево, быстро, местная классика.</small><span class="cost">~50–80 HK$</span></div></div>
+    <div class="row"><div class="tm">14:00</div><div class="ic">↗️</div><div><b>Эскалатор Mid-Levels → Сохо → PMQ</b><small>Самый длинный уличный эскалатор в мире. PMQ — бывшее общежитие полиции, теперь дизайнерские студии и магазины. Для Анны обязательно.</small></div></div>
+    <div class="row"><div class="tm">15:00</div><div class="ic">🏮</div><div><b>Храм Ман Мо и Кэт-стрит</b><small>Гигантские спирали благовоний под потолком, рядом антикварная улица.</small></div></div>
+    <div class="row"><div class="tm">15:45</div><div class="ic">🦐</div><div><b>Шэунг Ван — улица сушёных морепродуктов</b><small>Дес-Вё-роуд Вест: сушёные гребешки, грибы, травы. Рынок для местных.</small></div></div>
+    <div class="row"><div class="tm">16:30</div><div class="ic">🚇</div><div><b>MTR → Монгкок</b><small>~25 минут с пересадкой в Сентрале.</small></div></div>
+    <div class="row"><div class="tm">17:00</div><div class="ic">🛍</div><div><b>Монгкок: Ladies' Market, улица кроссовок, рынок золотых рыбок</b><small>Одежда, сувениры, аксессуары. Торгуемся.</small></div></div>
+    <div class="row"><div class="tm">18:15</div><div class="ic">🍳</div><div><b>Ужин: Australia Dairy Company (澳洲牛奶公司), Джордан</b><small>Легендарное гонконгское кафе: омлет на тосте, молочный пудинг. Быстро и шумно. Часы проверить в Google Maps.</small><span class="cost">~60–100 HK$</span></div></div>
+    <div class="row"><div class="tm">19:00</div><div class="ic">🏮</div><div><b>Ночной рынок Темпл-стрит</b><small>Рядом, у выхода A станции Jordan. Лучшее время — с 19 до 22.</small></div></div>
+    <div class="row"><div class="tm">19:45</div><div class="ic">🌃</div><div><b>Ночная гавань с набережной Цим Ша Цуй</b><small>Лазерное шоу Symphony of Lights в 20:00, по свежим данным, <b>приостановлено</b> на реконструкцию. Проверить на gov.hk или discoverhongkong.com. Подсвеченный город красив и без шоу.</small></div></div>
+    <div class="row"><div class="tm">20:15</div><div class="ic">🚄</div><div><b>Вест-Коулун → Гуанчжоу-Восточный</b><small>Граница ~20–30 мин, поезд ~1 ч 40 мин. Последние поезда, по Trip.com, около 22:30 — но это не подтверждено. Брать билет на ~20:45–21:15 заранее, чтобы не остаться без мест.</small><span class="cost">~185–240 ¥</span></div></div>
+    <div class="row"><div class="tm">~23:00</div><div class="ic">🚕</div><div><b>Такси до отеля, сон</b><small>Завтра фабрики — выезд в 8:15.</small></div></div>
+  </div>
+  <div class="tip">Расход на Гонконг на человека: поезда ~400–480 ¥ + на месте ~600–800 HK$ (трамвай, паром, метро, еда), без покупок. Российские карты не работают — нужны наличные HKD или Alipay.</div>
+</div>
+
+<!-- ============ 28 ============ -->
+<div class="day" id="d28">
+  <div class="day-head t-fact"><h3>28 октября, среда — фабрики, день 1: Лэцун</h3><span>Фошань, район Шуньдэ</span></div>
+  <div class="day-sum">Лэцун — крупнейший мебельный торговый центр мира: шоу-румы фабрик, оптовые залы. Утром дорогой сегмент, днём средний и встречи с поставщиками с ярмарки.</div>
+  <div class="tl">
+    <div class="row"><div class="tm">07:30</div><div class="ic">☕</div><div><b>Завтрак</b></div></div>
+    <div class="row"><div class="tm">08:15</div><div class="ic">🚐</div><div><b>Машина с водителем на весь день</b><small>Договориться через переводчика на фабрики — так проще всего: 5 человек, несколько адресов, длинные расстояния. Такси/Didi из центра Гуанчжоу до Лэцуна — ~50 мин, ~100–150 ¥ в одну сторону (по форумам). Метро: линия Гуанфо до «Куйцилу», дальше такси, ~1,5 часа.</small><span class="cost">цена машины — уточнить</span></div></div>
+    <div class="row"><div class="tm">09:15</div><div class="ic">🏛</div><div><b>Louvre International Furniture Exhibition Center (罗浮宫国际家具博览中心)</b><small>Верхний сегмент: дизайнерская мебель, крупные бренды. 9:00–18:30, вход бесплатный. На 6-й этаж нужна запись за 30 минут.</small></div></div>
+    <div class="row"><div class="tm">12:30</div><div class="ic">🍲</div><div><b>Обед в Лэцуне: кухня Шуньдэ</b><small>Шуньдэ — «город гастрономии» ЮНЕСКО. Пробуем рыбу по-шуньдэски и десерт 双皮奶 (молочный пудинг «двойная пенка»), он родом отсюда.</small><span class="cost">~80–150 ¥/чел</span></div></div>
+    <div class="row"><div class="tm">13:30</div><div class="ic">🏭</div><div><b>Шоу-румы и встречи с поставщиками с ярмарки</b><small>Международный мебельный город Лэцуна (乐从国际家具城) и соседние комплексы. Таксисту показываем название иероглифами.</small></div></div>
+    <div class="row"><div class="tm">17:00</div><div class="ic">🚐</div><div><b>Обратно в Гуанчжоу</b><small>Вечерние пробки — закладываем 1–1,5 часа.</small></div></div>
+    <div class="row"><div class="tm">19:00</div><div class="ic">🍽</div><div><b>Ужин у отеля, разбор дня</b><small>Сравнить цены шоу-румов с ценами на ярмарке.</small></div></div>
+  </div>
+</div>
+
+<!-- ============ 29 ============ -->
+<div class="day" id="d29">
+  <div class="day-head t-fact"><h3>29 октября, четверг — фабрики, день 2: Лунцзян + вечер в старом Фошане</h3><span>Производство · храм Цзумяо · Линнань Тяньди</span></div>
+  <div class="day-sum">Лунцзян — крупнейшая мебельная производственная база Китая, многие фабрики из Лэцуна стоят именно здесь. Утром фабрики, вечером храм кунг-фу и ужин в старом квартале.</div>
+  <div class="tl">
+    <div class="row"><div class="tm">08:00</div><div class="ic">🚐</div><div><b>Выезд в Лунцзян, ~1–1,25 часа</b><small>Адреса фабрик получены на ярмарке 26-го.</small></div></div>
+    <div class="row"><div class="tm">09:30</div><div class="ic">🏭</div><div><b>Фабрика №1: цех, материалы, ОТК</b><small>Смотрим производство, качество фурнитуры и обивки, условия упаковки и отгрузки.</small></div></div>
+    <div class="row"><div class="tm">12:30</div><div class="ic">🍜</div><div><b>Обед — часто приглашает сама фабрика</b></div></div>
+    <div class="row"><div class="tm">13:30</div><div class="ic">🏭</div><div><b>Фабрика №2</b></div></div>
+    <div class="row"><div class="tm">16:15</div><div class="ic">🚐</div><div><b>Переезд в центр Фошаня (Чаньчэн), ~45 мин</b></div></div>
+    <div class="row"><div class="tm">17:00</div><div class="ic">🥋</div><div><b>Храм Цзумяо и зал Ип Мана</b><small>Храм XI века, родина южного кунг-фу. Внутри зал Ип Мана — учителя Брюса Ли. Работает до 18:00, последний вход в 17:30.</small><span class="cost">~20 ¥</span></div></div>
+    <div class="row"><div class="tm">18:00</div><div class="ic">🏮</div><div><b>Ужин в Линнань Тяньди</b><small>Отреставрированный старый квартал вплотную к храму: фонари, кантонская кухня, бары. Вход свободный, вечером атмосфернее всего.</small><span class="cost">~100–150 ¥/чел</span></div></div>
+    <div class="row"><div class="tm">20:00</div><div class="ic">🚇</div><div><b>Обратно в Гуанчжоу</b><small>На машине ~45–60 мин. Метро: станция «Цзумяо» линии Гуанфо → пересадки до «Зоопарка», ~1 ч 20 мин.</small></div></div>
+  </div>
+  <div class="tip">Если фабрики затянутся и к храму не успеть до 17:30 — сразу едем в Линнань Тяньди: квартал открыт весь вечер.</div>
+</div>
+
+<!-- ============ 30 ============ -->
+<div class="day" id="d30">
+  <div class="day-head t-free"><h3>30 октября, пятница — свободный день №2</h3><span>Вариант А: старый Гуанчжоу · Вариант Б: Шэньчжэнь</span></div>
+  <div class="day-sum"><b>Вариант А (рекомендую)</b> — ровно то, что просили: красивое спокойное место + рынок одежды + продуктовый рынок + еда, без поездов накануне ярмарки. Всё в одном районе Ливань, на метро без пересадок от станции «Хуанша».</div>
+  <div class="tl">
+    <div class="row"><div class="tm">08:00</div><div class="ic">☕</div><div><b>Завтрак</b></div></div>
+    <div class="row"><div class="tm">09:00</div><div class="ic">🚇</div><div><b>Метро до «Хуанша»</b><small>«Зоопарк» → «Янцзи» (переход на линию 1) → «Хуанша», ~30 мин.</small><span class="cost">~5 ¥</span></div></div>
+    <div class="row"><div class="tm">09:30</div><div class="ic">🌳</div><div><b>Остров Шамянь (沙面)</b><small>Колониальные особняки XIX века, баньяны, церковь Лурдской Богоматери. Утром почти пусто и тихо — та самая спокойная красота.</small></div></div>
+    <div class="row"><div class="tm">10:45</div><div class="ic">🦑</div><div><b>Рынок Цинпин (清平市场)</b><small>Через мостик от Шамяня: сушёные морепродукты, травы, грибы, чай. Настоящий продуктовый рынок.</small></div></div>
+    <div class="row"><div class="tm">11:30</div><div class="ic">👗</div><div><b>Шисаньхан (十三行) — оптовый рынок одежды</b><small>Средний и высокий сегмент, лучшее — с 3-го этажа. Оптовые ряды сворачиваются к 17–18 часам, поэтому идём днём, а не вечером.</small></div></div>
+    <div class="row"><div class="tm">14:00</div><div class="ic">🥟</div><div><b>Обед: Тао Тао Цзюй (陶陶居), флагман на Дишифу-роуд</b><small>Дим-самы в старейшей чайной Гуанчжоу (1880 год). Заказываем ха-гао (креветки), сиу-май, чар-сиу-бао.</small><span class="cost">~100–150 ¥/чел</span></div></div>
+    <div class="row"><div class="tm">15:30</div><div class="ic">🏮</div><div><b>Юнцин-фан и Эньнин-роуд</b><small>Старая кантонская улица с аркадами, родовой дом Брюса Ли. Десерт в 南信 (Наньсинь): 双皮奶 и имбирный молочный пудинг.</small></div></div>
+    <div class="row"><div class="tm">17:15</div><div class="ic">🌅</div><div><b>Парк у озера Ливань</b><small>Тихий закат у воды, неспешная прогулка.</small></div></div>
+    <div class="row"><div class="tm">18:30</div><div class="ic">🍢</div><div><b>Лёгкий ужин — уличная еда в квартале</b></div></div>
+    <div class="row"><div class="tm">19:15</div><div class="ic">⛴</div><div><b>Ночной круиз по Жемчужной реке от пирса Сиди (西堤码头)</b><small>Пешком от Шамяня. Отправления примерно 19:00–21:30, рейс 80–90 мин: подсвеченные мосты и Кантонская башня.</small><span class="cost">~108–148 ¥</span></div></div>
+    <div class="row"><div class="tm">21:00</div><div class="ic">🚕</div><div><b>Такси в отель (~20 мин), спать</b><small>Завтра Phase 3.</small></div></div>
+  </div>
+  <div class="tip">Альтернатива для одежды ближе к отелю: рынок Байма (白马) и Чжаньси у вокзала Гуанчжоу — линия 5 без пересадок, 3 станции от «Зоопарка». Там брендовые вещи и корейский стиль.</div>
+  <div class="alt">
+    <h4>Вариант Б: Шэньчжэнь — если нужна дешёвая электроника</h4>
+    <div class="row"><div class="tm">07:45</div><div class="ic">🚕</div><div><b>Такси на Гуанчжоу-Восточный</b></div></div>
+    <div class="row"><div class="tm">08:15</div><div class="ic">🚄</div><div><b>Поезд C/D до Шэньчжэня (Лоху)</b><small>~1 ч 10 мин. С июля 2026 года часть рейсов идёт на Футянь — поезд выбрать в 12306.</small></div></div>
+    <div class="row"><div class="tm">09:45</div><div class="ic">👗</div><div><b>Дунмэнь (东门) — торговая улица, одежда, уличная еда</b><small>Часы работы на 2026 год не нашла — проверить на месте.</small></div></div>
+    <div class="row"><div class="tm">12:30</div><div class="ic">🍲</div><div><b>Обед: чаошаньский говяжий хот-пот</b></div></div>
+    <div class="row"><div class="tm">13:30</div><div class="ic">📱</div><div><b>Хуацянбэй — рынок электроники</b><small>Метро до «Хуацянлу», выход A. Магазины работают ~10:00–20:00, лучше после 12:00.</small></div></div>
+    <div class="row"><div class="tm">17:15</div><div class="ic">🌅</div><div><b>Парк талантов (人才公园) у бухты Шэньчжэнь</b><small>Спокойная набережная, закат с видом на небоскрёбы.</small></div></div>
+    <div class="row"><div class="tm">20:00</div><div class="ic">🚄</div><div><b>Поезд Футянь → Гуанчжоу (41 мин – 1 ч 9 мин), отель к ~22:00</b></div></div>
+    <p style="margin:8px 0 0"><b>Минус:</b> 2,5–3 часа в поездах накануне ярмарки. <b>Плюс:</b> электроника заметно дешевле.</p>
+  </div>
+</div>
+
+<!-- ============ 31 ============ -->
+<div class="day" id="d31">
+  <div class="day-head t-fair"><h3>31 октября, суббота — ярмарка, Phase 3</h3><span>Текстиль, одежда, еда, товары для дома</span></div>
+  <div class="day-sum">Мебель уже закрыта — этот день лёгкий: смотрим текстиль для дома и смежные категории, к 16:00 закругляемся, вечером прощальный ужин.</div>
+  <div class="tl">
+    <div class="row"><div class="tm">07:30</div><div class="ic">☕</div><div><b>Завтрак</b></div></div>
+    <div class="row"><div class="tm">08:30</div><div class="ic">🚌</div><div><b>Шаттл / метро до Пачжоу</b><small>Бейджи байеров действуют. Стороннему переводчику нужен <b>новый</b> бейдж на Phase 3 (заявка до 29.10).</small></div></div>
+    <div class="row"><div class="tm">09:30</div><div class="ic">🧵</div><div><b>Phase 3: текстиль для дома, ткани, декор</b><small>Анне — обивочные ткани и шторы под мебельную линейку.</small></div></div>
+    <div class="row"><div class="tm">16:00</div><div class="ic">🚇</div><div><b>В отель, сбор чемоданов</b></div></div>
+    <div class="row"><div class="tm">19:00</div><div class="ic">🥂</div><div><b>Прощальный ужин: Гуанчжоу Цзюцзя (广州酒家), Вэньчан-нань-лу</b><small>Классика кантонской кухни с 1935 года: жареный гусь, сладкий чар-сиу, рыба на пару. Такси ~20 мин.</small><span class="cost">~150–250 ¥/чел</span></div></div>
+    <div class="row"><div class="tm">21:30</div><div class="ic">🧳</div><div><b>Финальные сборы</b><small>Покупки распределить так, чтобы уложиться в норму багажа 23 кг на человека.</small></div></div>
+  </div>
+</div>
+
+<!-- ============ 1 ============ -->
+<div class="day" id="d01">
+  <div class="day-head t-out"><h3>1 ноября, воскресенье — вылет</h3><span>Гуанчжоу → (Ухань) → Москва</span></div>
+  <div class="tl">
+    <div class="row"><div class="tm">08:00</div><div class="ic">☕</div><div><b>Завтрак, выезд из номеров</b><small>Поздний выезд включён, но рейс в 13:30 — спешить не нужно.</small></div></div>
+    <div class="row"><div class="tm">09:45</div><div class="ic">🚕</div><div><b>Didi / такси в аэропорт Байюнь, терминал 2</b><small>~45–60 мин, две машины или XL.</small><span class="cost">~130–170 ¥ за машину</span></div></div>
+    <div class="row"><div class="tm">10:45</div><div class="ic">🧳</div><div><b>Регистрация, выездной паспортный контроль</b></div></div>
+    <div class="row"><div class="tm">13:30</div><div class="ic">✈️</div><div><b>CZ8003 Гуанчжоу → Москва</b><small>Техническая остановка в Ухане (1 ч 50 мин), 12 ч 45 мин в пути.</small></div></div>
+    <div class="row"><div class="tm">21:15</div><div class="ic">🛬</div><div><b>Шереметьево</b><small>Паспортный контроль и багаж ~1 час.</small></div></div>
+    <div class="row"><div class="tm">22:30</div><div class="ic">🚆</div><div><b>Ночёвка в Москве — у Комсомольской площади</b><small>Аэроэкспресс до Белорусского → кольцевая → «Комсомольская», ~1 ч 15 мин. Удобно всем: Соне до поезда 5 минут пешком, остальным до Павелецкого (Аэроэкспресс в Домодедово) 3 станции по кольцевой.</small></div></div>
+  </div>
+</div>
+
+<!-- ============ 2-3 ============ -->
+<div class="day" id="d02">
+  <div class="day-head t-out"><h3>2–3 ноября — по домам</h3><span>Москва → Екатеринбург / Анапа</span></div>
+  <div class="tl">
+    <div class="row"><div class="tm">2.11 10:50</div><div class="ic">🚆</div><div><b>Соня — поезд Москва Казанская → Анапа</b><small>Прибытие 3 ноября в 09:40.</small></div></div>
+    <div class="row"><div class="tm">2.11</div><div class="ic">✈️</div><div><b>Никита, Валерия, Анна — Москва → Екатеринбург</b><small>Билет ещё купить. Из Домодедово — Аэроэкспресс от Павелецкого (~45 мин), выезжать за 3 часа до вылета.</small></div></div>
+  </div>
+</div>
+
+<section id="budget">
+  <h2>💰 Бюджет на человека (ориентир)</h2>
+  <p class="lead">Курс для пересчёта: ~12,5 ₽ за юань (по источникам весны 2026, проверьте перед поездкой). Цены на месте — ориентиры, не гарантия.</p>
+  <div class="tw"><table>
+    <tr><th>Статья</th><th>На человека</th><th>Комментарий</th></tr>
+    <tr><td>Отель Paco, 8 ночей</td><td>~36 250 ₽</td><td>144 984 ₽ за оба номера, с завтраком (Booking, 9 окт)</td></tr>
+    <tr><td>Москва ⇄ Гуанчжоу</td><td>~71 800 ₽</td><td>287 176 ₽ на четверых — из вашего окна оформления</td></tr>
+    <tr><td>Екатеринбург ⇄ Москва / поезд Сони</td><td>по билетам</td><td>обратные даты сместились на 2.11 — пересчитать</td></tr>
+    <tr><td>Еда, 8 дней</td><td>~20 000–30 000 ₽</td><td>~200–300 ¥ в день</td></tr>
+    <tr><td>Местный транспорт</td><td>~5 000 ₽</td><td>метро, такси, аэропорт</td></tr>
+    <tr><td>Гонконг (27.10)</td><td>~12 000–15 000 ₽</td><td>поезда + день на месте, без покупок</td></tr>
+    <tr><td>Машина на фабрики, 2 дня</td><td>уточнить</td><td>делим на четверых, цену согласовать через переводчика</td></tr>
+    <tr><td>Переводчики</td><td>~5 000 ₽ + фабрики</td><td>ярмарка: 500 ¥ × 3 дня на группу; фабрики — отдельно</td></tr>
+  </table></div>
+</section>
+
+<section id="sources">
+  <h2>Источники и что я не смогла подтвердить</h2>
+  <div class="card">
+    <ul>
+      <li>Цены отелей: Booking.com, проверка 9 октября 2026, даты 24.10–1.11.</li>
+      <li>Гонконг, безвиз 14 дней для РФ: <a href="https://www.immd.gov.hk/eng/services/visas/visit-transit/visit-visa-entry-permit.html">ImmD Hong Kong</a>; срок паспорта для Гонконга в источниках расходится.</li>
+      <li>Поезда в Гонконг: <a href="https://www.travelchinaguide.com/china-trains/guangzhou-hongkong.htm">Travel China Guide</a>, <a href="https://us.trip.com/trains/china/route/guangzhou-east-to-hong-kong-west-kowloon/">Trip.com</a>. Точные поезда — только в 12306.</li>
+      <li>Peak Tram 116 HK$: <a href="https://www.thepeak.com.hk/en/ticket-and-booking/purchase-ticket/peak-tram-sky-pass">The Peak</a>. Паром: <a href="https://www.starferry.com.hk/en/service">Star Ferry</a>. Приостановка светового шоу: <a href="https://www.tichk.org/en/latest-news/2025-11-28">TIC HK</a>.</li>
+      <li>Метро: линия 11 «Юаньцунь» ↔ «Пачжоу» — <a href="https://zh.wikipedia.org/zh-hans/%E5%B9%BF%E5%B7%9E%E5%9C%B0%E9%93%8111%E5%8F%B7%E7%BA%BF">Википедия</a>; переход на «Пачжоу» с линии 11 на 8 — через выход.</li>
+      <li>Лэцун и Лувр: <a href="https://us.trip.com/travel-guide/attraction/foshan/louvre-international-furniture-exhibition-center-13415667/">Trip.com</a>, <a href="https://www.homebridgechina.com/journal-posts/foshan-lecong-furniture-markets">Homebridge</a>. Цены такси — из старых форумов.</li>
+      <li>Цзумяо, часы и цена: <a href="https://us.trip.com/moments/poi-foshan-zumiao-81417/">Trip.com</a>.</li>
+      <li>Круиз по Жемчужной реке: <a href="https://thingstodoguangzhou.com/pearl-river-cruise/">thingstodoguangzhou.com</a> — расписания операторов не опубликованы.</li>
+      <li>Оплата в Китае: <a href="https://forum.awd.ru/viewtopic.php?t=199099">форум Винского</a>, <a href="https://www.aviasales.ru/psgr/article/kak-polzovatsya-alipay">Aviasales</a>.</li>
+      <li>Правила ярмарки для сопровождающих: <a href="https://www.cantonfair.org.cn/en-US/pages/1003583666053890048">cantonfair.org.cn</a> (139-я сессия).</li>
+    </ul>
+    <p style="margin:6px 0 0"><b>Не подтверждено:</b> точное расписание шаттла отеля, адреса и часы выдачи бейджей 140-й сессии, последний поезд из Гонконга, часы ресторанов и рынка Дунмэнь, цена машины с водителем.</p>
+  </div>
+</section>
+
+</main>
+<footer>Собрано 9 октября 2026 · вернуться к <a href="index.html">общей странице поездки</a></footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map').setView([22.75, 113.6], 9);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap',maxZoom:18}).addTo(map);
+  const C={fair:'#b3272d',base:'#2f5fa8',hk:'#7a3fb0',fact:'#c26a12',free:'#2f7d5c',sz:'#5c6470'};
+  const P=[
+    ['Аэропорт Байюнь, T2 — прилёт 24.10, вылет 1.11',23.396,113.301,'base'],
+    ['Отель Paco Hotel Zoo Metro (база, ст. «Зоопарк»)',23.1395,113.3010,'base'],
+    ['Вокзал Гуанчжоу-Восточный — поезда в Гонконг/Шэньчжэнь',23.1505,113.3247,'base'],
+    ['Кантонская ярмарка, Пачжоу — 25, 26, 31.10',23.1008,113.3609,'fair'],
+    ['Кантонская башня + площадь Хуачэн — вечер 26.10',23.1066,113.3245,'fair'],
+    ['Гонконг: вокзал Вест-Коулун',22.3040,114.1655,'hk'],
+    ['Гонконг: пирс Star Ferry, Цим Ша Цуй',22.2937,114.1683,'hk'],
+    ['Гонконг: пик Виктория',22.2711,114.1497,'hk'],
+    ['Гонконг: PMQ и храм Ман Мо',22.2837,114.1508,'hk'],
+    ['Гонконг: Ladies’ Market, Монгкок',22.3185,114.1718,'hk'],
+    ['Гонконг: ночной рынок Темпл-стрит',22.3058,114.1698,'hk'],
+    ['Лэцун: Louvre Furniture Center (район, примерно) — 28.10',22.951,113.126,'fact'],
+    ['Лунцзян: мебельная производственная база (район, примерно) — 29.10',22.875,113.085,'fact'],
+    ['Фошань: храм Цзумяо + Линнань Тяньди — вечер 29.10',23.0326,113.1091,'fact'],
+    ['Остров Шамянь — 30.10',23.1076,113.2433,'free'],
+    ['Рынок Цинпин — 30.10',23.1105,113.2453,'free'],
+    ['Рынок одежды Шисаньхан — 30.10',23.1170,113.2560,'free'],
+    ['Тао Тао Цзюй, Дишифу-роуд — 30.10',23.1205,113.2465,'free'],
+    ['Юнцин-фан / Эньнин-роуд — 30.10',23.1190,113.2405,'free'],
+    ['Пирс Сиди — круиз по реке, 30.10',23.1060,113.2470,'free'],
+    ['Рынок одежды Байма (альтернатива)',23.1475,113.2585,'free'],
+    ['Шэньчжэнь: Дунмэнь (вариант Б)',22.5450,114.1180,'sz'],
+    ['Шэньчжэнь: Хуацянбэй (вариант Б)',22.5440,114.0840,'sz'],
+    ['Шэньчжэнь: Парк талантов (вариант Б)',22.5150,113.9520,'sz']
+  ];
+  const b=[];
+  P.forEach(p=>{L.circleMarker([p[1],p[2]],{radius:7,color:'#fff',weight:2,fillColor:C[p[3]],fillOpacity:1}).addTo(map).bindPopup('<b>'+p[0]+'</b>');b.push([p[1],p[2]]);});
+  map.fitBounds(b,{padding:[20,20]});
+</script>
+</body>
+</html>
